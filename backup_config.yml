@@ -1,0 +1,32 @@
+---
+- name: Backup des configurations Cisco
+  hosts: routers
+  gather_facts: no
+
+  tasks:
+    - name: Créer le dossier backup
+      file:
+        path: /home/rocky/ansible-lab/backups
+        state: directory
+      delegate_to: localhost
+
+    - name: Définir la date du backup
+      set_fact:
+        backup_date: "{{ lookup('pipe', 'date +%Y-%m-%d') }}"
+        backup_time: "{{ lookup('pipe', 'date +%H-%M-%S') }}"
+
+    - name: Récupérer le running-config
+      ios_command:
+        commands:
+          - show running-config
+      register: running_config
+
+    - name: Sauvegarder la configuration
+      copy:
+        content: "{{ running_config.stdout[0] }}"
+        dest: "/home/rocky/ansible-lab/backups/{{ inventory_hostname }}_{{ backup_date }}.txt"
+      delegate_to: localhost
+
+    - name: Confirmer le backup
+      debug:
+        msg: "Backup de {{ inventory_hostname }} sauvegardé : {{ inventory_hostname }}_{{ backup_date }}.txt"

@@ -1,0 +1,42 @@
+---
+- name: Collecter les facts des routeurs
+  hosts: routers
+  gather_facts: no
+
+  tasks:
+    - name: Collecter les facts IOS
+      ios_facts:
+        gather_subset:
+          - all
+
+    - name: Afficher les informations générales
+      debug:
+        msg:
+          - "Hostname    : {{ ansible_net_hostname }}"
+          - "Version IOS : {{ ansible_net_version }}"
+          - "Modèle      : {{ ansible_net_model }}"
+          - "Série       : {{ ansible_net_serialnum }}"
+          - "RAM totale  : {{ ansible_net_memtotal_mb }} MB"
+          - "RAM libre   : {{ ansible_net_memfree_mb }} MB"
+
+    - name: Afficher les interfaces
+      debug:
+        msg: "Interface {{ item.key }} - IP : {{ item.value.ipv4[0].address | default('N/A') }}"
+      loop: "{{ ansible_net_interfaces | dict2items }}"
+      when: item.value.ipv4 is defined
+
+    - name: Sauvegarder les facts dans un fichier
+      copy:
+        content: |
+          ========================================
+          Rapport Routeur : {{ ansible_net_hostname }}
+          Date            : {{ lookup('pipe', 'date +%Y-%m-%d') }} {{ lookup('pipe', 'date +%H-%M-%S') }}
+          ========================================
+          Version IOS  : {{ ansible_net_version }}
+          Modèle       : {{ ansible_net_model }}
+          Numéro Série : {{ ansible_net_serialnum }}
+          RAM Totale   : {{ ansible_net_memtotal_mb }} MB
+          RAM Libre    : {{ ansible_net_memfree_mb }} MB
+          ========================================
+        dest: "/home/rocky/ansible-lab/backups/{{ inventory_hostname }}_facts.txt"
+      delegate_to: localhost

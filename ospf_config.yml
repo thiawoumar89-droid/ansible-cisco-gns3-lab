@@ -1,0 +1,32 @@
+---
+- name: Configuration OSPF
+  hosts: routers
+  gather_facts: no
+
+  tasks:
+    - name: Configurer OSPF
+      ios_config:
+        lines:
+          - router-id {{ ospf_router_id }}
+          - network 192.168.11.0 0.0.0.255 area 0
+          - network {{ ospf_loopback }} 0.0.0.0 area 0
+        parents:
+          - router ospf 1
+
+    - name: Sauvegarder la configuration
+      ios_command:
+        commands:
+          - command: "copy running-config startup-config"
+            prompt: "Destination filename"
+            answer: "\r"
+      ignore_errors: yes
+
+    - name: Vérifier les voisins OSPF
+      ios_command:
+        commands:
+          - show ip ospf neighbor
+      register: ospf_result
+
+    - name: Afficher les voisins OSPF
+      debug:
+        var: ospf_result.stdout_lines

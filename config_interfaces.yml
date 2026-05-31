@@ -1,0 +1,39 @@
+---
+- name: Configuration des interfaces Cisco
+  hosts: routers
+  gather_facts: no
+
+  tasks:
+    - name: Configurer description FastEthernet1/0
+      ios_config:
+        lines:
+          - description Lien vers Ansible Rocky Linux
+        parents:
+          - interface FastEthernet1/0
+
+    - name: Configurer interface Loopback0
+      ios_config:
+        lines:
+          - description Interface Loopback Ansible
+          - ip address 1.1.1.1 255.255.255.255
+          - no shutdown
+        parents:
+          - interface Loopback0
+    - name: Sauvegarder la configuration
+      ios_command:
+        commands:
+          - command: "copy running-config startup-config"
+            prompt: "Destination filename"
+            answer: "\r"
+      ignore_errors: yes
+
+    - name: Verifier les interfaces
+      ios_command:
+        commands:
+          - show ip interface brief
+      register: result
+      ignore_errors: yes
+
+    - name: Afficher le resultat
+      debug:
+        var: result.stdout_lines
